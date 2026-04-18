@@ -13,9 +13,11 @@ vix_daily = vix.groupby("date")["High"].max().reset_index()
 
 signal = pd.merge(fear, vix_daily, on="date")
 signal_dates = set(
-    signal[(signal["fear"] < 10) & (signal["High"] > 30)]["date"]
+    signal[
+        (signal["fear"] < 10) |
+        ((signal["fear"] < 15) & (signal["High"] > 30))
+    ]["date"]
 )
-
 # ========= 2. SOXL =========
 soxl = pd.read_csv(
     "SOXL_2011-01-06__2026-04-18_stock_data.csv",
@@ -51,7 +53,7 @@ for i in range(len(soxl)):
     # ========= 持仓状态 =========
     if position == 1:
         # 止盈条件
-        if row["Close"] >= entry_price * 2:
+        if row["Close"] >= entry_price *2:
 
             exit_price = row["Close"]
             exit_date = date
@@ -80,4 +82,4 @@ df_trades = pd.DataFrame(trades)
 print(df_trades)
 print("\nFinal Capital:", cash)
 
-df_trades.to_csv("soxl_trade_log_stateful.csv", index=False)
+df_trades.to_csv("soxl_trade_log_stateful_2.csv", index=False)
