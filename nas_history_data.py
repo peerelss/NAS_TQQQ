@@ -1,8 +1,8 @@
 import yfinance as yf
 
 # 指定股票代码和时间范围
-ticker = "SOX"  # 替换成您感兴趣的股票代码
-start_date = "2012-02-06"  # 替换成您感兴趣的起始日期
+ticker = "SOXL"  # 替换成您感兴趣的股票代码
+start_date = "2011-01-06"  # 替换成您感兴趣的起始日期
 end_date = "2026-04-18"  # 替换成您感兴趣的结束日期
 filename = f"{ticker}_{start_date}__{end_date}_stock_data.csv"
 # 获取历史股票价格数据
