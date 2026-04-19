@@ -29,57 +29,75 @@ soxl = soxl.sort_values("Date").reset_index(drop=True)
 price_map = soxl.set_index("Date")
 
 # ========= 3. 回测 =========
-cash = 100.0
-position = 0  # 0=空仓, 1=持仓
+summary_rows = []
+multipliers = [i / 10 for i in range(11, 51)]  # 1.1 到 5.0
 
-entry_price = 0
-entry_date = None
+for multiple in multipliers:
+    cash = 100.0
+    position = 0  # 0=空仓, 1=持仓
+    entry_price = 0
+    entry_date = None
+    trades = []
 
-trades = []
+    for _, row in soxl.iterrows():
+        date = row["Date"]
 
-for i in range(len(soxl)):
+        if position == 0:
+            if date in signal_dates:
+                entry_price = row["Open"]
+                entry_date = date
+                position = 1
+                continue
 
-    row = soxl.iloc[i]
-    date = row["Date"]
+        if position == 1:
+            if row["Close"] >= entry_price * multiple:
+                exit_price = row["Close"]
+                exit_date = date
 
-    # ========= 空仓状态：只允许第一次信号买入 =========
-    if position == 0:
-        if date in signal_dates:
-            entry_price = row["Open"]
-            entry_date = date
-            position = 1
-            continue
+                ret = exit_price / entry_price
+                cash *= ret
 
-    # ========= 持仓状态 =========
-    if position == 1:
-        # 止盈条件
-        if row["Close"] >= entry_price *2:
+                trades.append({
+                    "entry_date": entry_date,
+                    "entry_price": entry_price,
+                    "exit_date": exit_date,
+                    "exit_price": exit_price,
+                    "return": ret,
+                    "capital_after": cash,
+                    "hold_days": (exit_date - entry_date).days
+                })
 
-            exit_price = row["Close"]
-            exit_date = date
+                position = 0
+                entry_price = 0
+                entry_date = None
+    
+    df_trades = pd.DataFrame(trades)
+    print(df_trades)
+    print("\nFinal Capital:", cash,"\n")
+    df_trades.to_csv("soxl_trade_log_stateful_" + str(multiple) + ".csv", index=False)
 
-            ret = exit_price / entry_price
-            cash *= ret
+    if trades:
+        last_trade = trades[-1]
+        last_entry_date = last_trade["entry_date"]
+        last_entry_price = last_trade["entry_price"]
+        last_exit_date = last_trade["exit_date"]
+        last_exit_price = last_trade["exit_price"]
+    else:
+        last_entry_date = None
+        last_entry_price = None
+        last_exit_date = None
+        last_exit_price = None
 
-            trades.append({
-                "entry_date": entry_date,
-                "entry_price": entry_price,
-                "exit_date": exit_date,
-                "exit_price": exit_price,
-                "return": ret,
-                "capital_after": cash,
-                "hold_days": (exit_date - entry_date).days
-            })
+    summary_rows.append({
+        "multiple": multiple,
+        "entry_date": last_entry_date,
+        "entry_price": last_entry_price,
+        "exit_date": last_exit_date,
+        "exit_price": last_exit_price,
+        "capital_last": cash,
+        "trade_count": len(trades)
+    })
 
-            # 平仓 → 回到空仓
-            position = 0
-            entry_price = 0
-            entry_date = None
-
-# ========= 输出 =========
-df_trades = pd.DataFrame(trades)
-
-print(df_trades)
-print("\nFinal Capital:", cash)
-
-df_trades.to_csv("soxl_trade_log_stateful_2.csv", index=False)
+df_summary = pd.DataFrame(summary_rows)
+print(df_summary)
+df_summary.to_csv("soxl_trade_log_stateful_summary.csv", index=False)
