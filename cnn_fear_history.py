@@ -20,4 +20,4 @@ response = requests.get('https://www.finhacker.cz/wp-content/custom-api/fear-gre
 data=(response.json()['daily'])
 df = pd.DataFrame(data)
 df.to_csv("fear_greed_index.csv", index=False)
-print("数据已保存到 fear_greed_index.csv")
+print("数据已保存到 fear_greed_index_100.csv")
